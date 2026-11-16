@@ -1,0 +1,367 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales Forecasting - Trend Moment</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f1f5f9;
+            color: #1e293b;
+        }
+
+        /* HEADER */
+        header {
+            background: #173b70;
+            color: white;
+            padding: 20px 8%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .header-left h1 {
+            margin: 0;
+            font-size: 26px;
+        }
+
+        .header-left p {
+            margin: 8px 0 0;
+            font-size: 14px;
+        }
+
+        /* INFORMASI PENGGUNA */
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .user-name {
+            font-size: 14px;
+            text-align: right;
+        }
+
+        .user-name strong {
+            display: block;
+            margin-top: 5px;
+        }
+
+        /* TOMBOL LOGOUT */
+        .logout-btn {
+            display: inline-block;
+            background: #dc2626;
+            color: white;
+            padding: 11px 18px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+
+        .logout-btn:hover {
+            background: #b91c1c;
+        }
+
+        /* KONTEN UTAMA */
+        main {
+            max-width: 850px;
+            margin: 45px auto;
+            padding: 0 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 3px 15px #00000012;
+        }
+
+        .card h2 {
+            margin-top: 5px;
+            color: #173b70;
+        }
+
+        .card p {
+            line-height: 1.6;
+        }
+
+        /* FORM UPLOAD */
+        input, button {
+            width: 100%;
+            padding: 13px;
+            margin-top: 15px;
+            border-radius: 6px;
+        }
+
+        input {
+            border: 1px solid #cbd5e1;
+            background: white;
+        }
+
+        button {
+            border: none;
+            background: #2563eb;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        /* PESAN ERROR */
+        .error {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            line-height: 1.5;
+            overflow-wrap: anywhere;
+        }
+
+        /* INFORMASI DATASET */
+        .info {
+            background: #eff6ff;
+            padding: 18px;
+            border-radius: 8px;
+            margin-top: 25px;
+            border-left: 4px solid #2563eb;
+        }
+
+        .info h3 {
+            margin: 0 0 12px;
+            color: #173b70;
+            font-size: 16px;
+        }
+
+        .info p {
+            margin: 9px 0;
+            font-size: 14px;
+        }
+
+        .info ul {
+            padding-left: 20px;
+            margin: 8px 0;
+        }
+
+        .info li {
+            margin-bottom: 7px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .note {
+            background: #fff7ed;
+            border-left: 4px solid #f59e0b;
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 15px;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        /* FOOTER */
+        footer {
+            text-align: center;
+            padding: 25px;
+            color: #64748b;
+            font-size: 13px;
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 600px) {
+            header {
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 20px;
+            }
+
+            .user-info {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .user-name {
+                text-align: left;
+            }
+
+            main {
+                margin: 25px auto;
+            }
+
+            .card {
+                padding: 22px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<!-- HEADER -->
+<header>
+
+    <div class="header-left">
+        <h1>Sales Forecasting</h1>
+        <p>
+            Sistem Prediksi Penjualan Menggunakan Metode Trend Moment
+        </p>
+    </div>
+
+    <!-- INFORMASI PENGGUNA DAN LOGOUT -->
+    <div class="user-info">
+
+        <div class="user-name">
+            Selamat datang,
+            <strong>{{ nama }}</strong>
+        </div>
+
+        <a href="{{ url_for('logout') }}"
+           class="logout-btn"
+           onclick="return confirm('Apakah kamu yakin ingin logout?')">
+            Logout
+        </a>
+
+    </div>
+
+</header>
+
+<!-- KONTEN UTAMA -->
+<main>
+
+    <div class="card">
+
+        <h2>Upload Dataset Penjualan</h2>
+
+        <p>
+            Unggah dataset penjualan dalam format CSV
+            untuk melakukan prediksi penjualan bulanan
+            menggunakan metode Trend Moment.
+        </p>
+
+        <!-- PESAN ERROR -->
+        {% if error %}
+        <div class="error">
+            {{ error }}
+        </div>
+        {% endif %}
+
+        <!-- PESAN FLASH -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="error">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- FORM UPLOAD DATASET -->
+        <form action="{{ url_for('predict') }}"
+              method="POST"
+              enctype="multipart/form-data">
+
+            <label for="file">
+                Pilih Dataset CSV:
+            </label>
+
+            <input
+                type="file"
+                id="file"
+                name="file"
+                accept=".csv"
+                required
+            >
+
+            <button type="submit">
+                Proses Prediksi
+            </button>
+
+        </form>
+
+        <!-- INFORMASI FORMAT DATASET -->
+        <div class="info">
+
+            <h3>Format Dataset yang Didukung</h3>
+
+            <p>
+                Aplikasi dapat mendeteksi beberapa variasi
+                nama kolom tanggal dan penjualan secara otomatis.
+            </p>
+
+            <p><strong>1. Kolom tanggal:</strong></p>
+
+            <ul>
+                <li>Order Date</li>
+                <li>Date</li>
+                <li>Tanggal</li>
+                <li>Transaction Date</li>
+                <li>Invoice Date</li>
+                <li>Purchase Date</li>
+                <li>Sale Date</li>
+            </ul>
+
+            <p><strong>2. Kolom penjualan:</strong></p>
+
+            <ul>
+                <li>Sales</li>
+                <li>Revenue</li>
+                <li>Amount</li>
+                <li>Total Amount</li>
+                <li>Total Sales</li>
+                <li>Quantity</li>
+                <li>Units Sold</li>
+                <li>Penjualan</li>
+            </ul>
+
+            <p><strong>3. Contoh dataset Kaggle:</strong></p>
+
+            <ul>
+                <li>Superstore Sales</li>
+                <li>Retail Sales</li>
+                <li>Store Item Demand Forecasting</li>
+                <li>Store Sales - Time Series Forecasting</li>
+            </ul>
+
+            <div class="note">
+                <strong>Catatan:</strong>
+                <br>
+                File harus berformat CSV dengan minimal
+                3 bulan data yang valid. Ukuran maksimal
+                file adalah 64 MB.
+                <br><br>
+                Data penjualan akan dikelompokkan berdasarkan
+                bulan untuk selanjutnya dihitung menggunakan
+                metode Trend Moment.
+            </div>
+
+        </div>
+
+    </div>
+
+</main>
+
+<!-- FOOTER -->
+<footer>
+    Sales Forecasting &copy; 2026 |
+    Metode Trend Moment
+</footer>
+
+</body>
+</html>

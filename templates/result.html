@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Hasil Prediksi Penjualan - Trend Moment</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f1f5f9;
+            margin: 0;
+            color: #1e293b;
+        }
+
+        header {
+            background: #173b70;
+            color: white;
+            padding: 25px 8%;
+        }
+
+        header h1 {
+            margin: 0;
+        }
+
+        header p {
+            margin-bottom: 0;
+        }
+
+        main {
+            max-width: 1100px;
+            margin: 35px auto;
+            padding: 0 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 22px;
+            margin-bottom: 22px;
+            border-radius: 10px;
+            box-shadow: 0 3px 12px #00000010;
+            overflow-x: auto;
+        }
+
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(
+                auto-fit,
+                minmax(190px, 1fr)
+            );
+            gap: 15px;
+        }
+
+        .value {
+            font-size: 24px;
+            color: #2563eb;
+            font-weight: bold;
+            overflow-wrap: anywhere;
+        }
+
+        .muted {
+            color: #64748b;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 600px;
+        }
+
+        th, td {
+            border: 1px solid #e2e8f0;
+            padding: 11px;
+            text-align: center;
+        }
+
+        th {
+            background: #eaf1fb;
+            color: #173b70;
+        }
+
+        tfoot {
+            background: #eaf1fb;
+            font-weight: bold;
+        }
+
+        .button {
+            display: inline-block;
+            background: #2563eb;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 6px;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            font-family: Arial, sans-serif;
+        }
+
+        .button:hover {
+            background: #1d4ed8;
+        }
+
+        .button-excel {
+            background: #15803d;
+        }
+
+        .button-excel:hover {
+            background: #166534;
+        }
+
+        .button-pdf {
+            background: #dc2626;
+        }
+
+        .button-pdf:hover {
+            background: #b91c1c;
+        }
+
+        .button-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin: 25px 0;
+            align-items: center;
+        }
+
+        .button-container form {
+            margin: 0;
+        }
+
+        .formula {
+            background: #eff6ff;
+            padding: 15px;
+            border-radius: 8px;
+            line-height: 1.8;
+            overflow-wrap: anywhere;
+        }
+
+        .warning {
+            background: #fff7ed;
+            color: #9a3412;
+            border-left: 4px solid #f59e0b;
+            padding: 14px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            line-height: 1.6;
+        }
+
+        .success-info {
+            background: #eff6ff;
+            border-left: 4px solid #2563eb;
+            padding: 14px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            line-height: 1.6;
+        }
+
+        .evaluation-info {
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            line-height: 1.7;
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            min-height: 300px;
+        }
+
+        .empty {
+            color: #64748b;
+            font-style: italic;
+        }
+
+        footer {
+            text-align: center;
+            padding: 25px;
+            color: #64748b;
+        }
+
+        @media (max-width: 600px) {
+            header {
+                padding: 20px;
+            }
+
+            main {
+                margin: 20px auto;
+                padding: 0 12px;
+            }
+
+            .card {
+                padding: 16px;
+            }
+
+            .button-container {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .button {
+                text-align: center;
+                width: 100%;
+            }
+
+            .button-container form {
+                width: 100%;
+            }
+
+            .value {
+                font-size: 21px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h1>Sales Forecasting</h1>
+    <p>Sistem Prediksi Penjualan Menggunakan Metode Trend Moment</p>
+</header>
+
+<main>
+
+    <!-- =========================================
+         1. RINGKASAN HASIL
+    ========================================== -->
+
+    <div class="summary">
+
+        <div class="card">
+            <h3>Total Periode</h3>
+            <div class="value">{{ total_data }}</div>
+            <p class="muted">Jumlah bulan yang dianalisis</p>
+        </div>
+
+        <div class="card">
+            <h3>Konstanta (a)</h3>
+            <div class="value">{{ "{:,.4f}".format(a) }}</div>
+            <p class="muted">Konstanta persamaan tren</p>
+        </div>
+
+        <div class="card">
+            <h3>Koefisien (b)</h3>
+            <div class="value">{{ "{:,.4f}".format(b) }}</div>
+            <p class="muted">Koefisien tren penjualan</p>
+        </div>
+
+        <div class="card">
+            <h3>Prediksi Penjualan</h3>
+            <div class="value">
+                {{ "{:,.2f}".format(prediction) }}
+            </div>
+            <p>{{ next_period }}</p>
+        </div>
+
+    </div>
+
+
+    <!-- =========================================
+         2. INFORMASI DATASET
+    ========================================== -->
+
+    <div class="card">
+
+        <h2>Informasi Dataset</h2>
+
+        <div class="success-info">
+
+            <strong>Dataset berhasil diproses.</strong>
+
+            <p>
+                Kolom tanggal:
+                <strong>{{ dataset_date_column }}</strong>
+            </p>
+
+            <p>
+                Kolom penjualan:
+                <strong>{{ dataset_sales_column }}</strong>
+            </p>
+
+            <p>
+                Jumlah baris valid:
+                <strong>{{ valid_rows }}</strong>
+            </p>
+
+            <p>
+                Jumlah baris awal:
+                <strong>{{ original_rows }}</strong>
+            </p>
+
+        </div>
+
+        {% if warnings %}
+
+            <h3>Catatan Pengolahan Dataset</h3>
+
+            {% for warning in warnings %}
+
+                <div class="warning">
+                    {{ warning }}
+                </div>
+
+            {% endfor %}
+
+        {% endif %}
+
+    </div>
+
+
+    <!-- =========================================
+         3. PERSAMAAN TREND MOMENT
+    ========================================== -->
+
+    <div class="card">
+
+        <h2>Persamaan Trend Moment</h2>
+
+        <div class="formula">
+
+            <strong>Persamaan umum:</strong>
+
+            <p>
+                Y = a + bX
+            </p>
+
+            <strong>Persamaan berdasarkan dataset:</strong>
+
+            <p>
+                Y =
+                {{ "{:,.4f}".format(a) }}
+                +
+                ({{ "{:,.4f}".format(b) }} × X)
+            </p>
+
+            <strong>Indeks waktu periode berikutnya:</strong>
+
+            <p>
+                X = {{ total_data + 1 }}
+            </p>
+
+            <strong>Hasil prediksi {{ next_period }}:</strong>
+
+            <p>
+                {{ "{:,.2f}".format(prediction) }}
+            </p>
+
+        </div>
+
+    </div>
+
+
+    <!-- =========================================
+         4. GRAFIK PENJUALAN
+    ========================================== -->
+
+    <div class="card">
+
+        <h2>Grafik Penjualan dan Tren</h2>
+
+        <div class="chart-container">
+            <canvas id="salesChart"></canvas>
+        </div>
+
+        <p class="muted">
+            Garis biru menunjukkan penjualan aktual.
+            Garis oranye menunjukkan nilai tren dan prediksi.
+        </p>
+
+    </div>
+
+
+    <!-- =========================================
+         5. TABEL PERHITUNGAN TREND MOMENT
+    ========================================== -->
+
+    <div class="card">
+
+        <h2>Tabel Perhitungan Trend Moment</h2>
+
+        <p class="muted">
+            Perhitungan menggunakan indeks waktu
+            X = 1, 2, 3, ..., n 
+        </p>
+
+        <table>
+
+            <thead>
+                <tr>
+                    <th>Periode</th>
+                    <th>X</th>
+                    <th>Y (Penjualan)</th>
+                    <th>XY</th>
+                    <th>X²</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                {% for row in calculation %}
+
+                    <tr>
+                        <td>{{ row.periode }}</td>
+                        <td>{{ row.x }}</td>
+                        <td>{{ "{:,.2f}".format(row.y) }}</td>
+                        <td>{{ "{:,.2f}".format(row.xy) }}</td>
+                        <td>{{ row.x2 }}</td>
+                    </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+            <tfoot>
+                <tr>
+                    <th>Jumlah</th>
+                    <th>{{ sum_x }}</th>
+                    <th>{{ "{:,.2f}".format(sum_y) }}</th>
+                    <th>{{ "{:,.2f}".format(sum_xy) }}</th>
+                    <th>{{ sum_x2 }}</th>
+                </tr>
+            </tfoot>
+
+        </table>
+
+    </div>
+
+
+    <!-- =========================================
+         6. RUMUS PERHITUNGAN
+    ========================================== -->
+
+    <div class="card">
+
+        <h2>Komponen Perhitungan</h2>
+
+        <div class="formula">
+
+            <p>
+                <strong>Rumus konstanta a:</strong>
+            </p>
+
+            <p>
+                a = [(ΣX² × ΣY) - (ΣX × ΣXY)]
+                / [nΣX² - (ΣX)²]
+            </p>
+
+            <p>
+                <strong>Rumus koefisien b:</strong>
+            </p>
+
+            <p>
+                b = [nΣXY - (ΣX × ΣY)]
+                / [nΣX² - (ΣX)²]
+            </p>
+
+            <p>
+                <strong>Hasil perhitungan:</strong>
+            </p>
+
+            <p>
+                n = {{ total_data }}
+            </p>
+
+            <p>
+                ΣX = {{ sum_x }}
+            </p>
+
+            <p>
+                ΣY = {{ "{:,.2f}".format(sum_y) }}
+            </p>
+
+            <p>
+                ΣXY = {{ "{:,.2f}".format(sum_xy) }}
+            </p>
+
+            <p>
+                ΣX² = {{ sum_x2 }}
+            </p>
+
+            <p>
+                a = {{ "{:,.4f}".format(a) }}
+            </p>
+
+            <p>
+                b = {{ "{:,.4f}".format(b) }}
+            </p>
+
+        </div>
+
+    </div>
+
+
+    <!-- =========================================
+         7. EVALUASI MODEL
+    ========================================== -->
+
+    <div class="card">
+
+        <h2>Evaluasi Model</h2>
+
+        <div class="summary">
+
+            <div>
+                <h3>Data Training</h3>
+                <div class="value">{{ train_periods }}</div>
+                <p class="muted">Bulan</p>
+            </div>
+
+            <div>
+                <h3>Data Testing</h3>
+                <div class="value">{{ test_periods }}</div>
+                <p class="muted">Bulan</p>
+            </div>
+
+            <div>
+                <h3>MAPE</h3>
+
+                <div class="value">
+                    {% if mape is not none %}
+                        {{ mape }}%
+                    {% else %}
+                        -
+                    {% endif %}
+                </div>
+            </div>
+
+            <div>
+                <h3>MAE</h3>
+
+                <div class="value">
+                    {{ "{:,.2f}".format(mae) }}
+                </div>
+            </div>
+
+        </div>
+
+        <div class="evaluation-info">
+
+            <strong>Metode evaluasi:</strong>
+            Mean Absolute Percentage Error (MAPE) dan
+            Mean Absolute Error (MAE).
+
+            <p>
+                Model dilatih menggunakan
+                {{ train_periods }} bulan data training
+                dan diuji menggunakan
+                {{ test_periods }} bulan data testing.
+            </p>
+
+            {% if mape is not none %}
+
+                <p>
+                    Nilai MAPE:
+                    <strong>{{ mape }}%</strong>
+                </p>
+
+                <p>
+                    Jumlah periode aktual yang digunakan
+                    dalam perhitungan MAPE:
+                    <strong>{{ mape_count }}</strong>.
+                </p>
+
+            {% else %}
+
+                <p>
+                    MAPE tidak dapat dihitung karena seluruh
+                    nilai aktual pada data testing bernilai nol
+                    atau tidak tersedia.
+                </p>
+
+            {% endif %}
+
+            <p>
+                Nilai MAE:
+                <strong>{{ "{:,.2f}".format(mae) }}</strong>
+            </p>
+
+            <p class="muted">
+                MAPE menunjukkan rata-rata kesalahan relatif
+                dalam persentase, sedangkan MAE menunjukkan
+                rata-rata kesalahan absolut dalam satuan data.
+                Nilai evaluasi dihitung berdasarkan data testing.
+            </p>
+
+        </div>
+
+    </div>
+
+
+    <!-- =========================================
+         8. TABEL AKTUAL DAN PREDIKSI
+    ========================================== -->
+
+    <div class="card">
+
+        <h2>Perbandingan Data Aktual dan Prediksi</h2>
+
+        <p class="muted">
+            Tabel berikut memperlihatkan hasil pengujian
+            model pada periode testing.
+        </p>
+
+        <table>
+
+            <thead>
+                <tr>
+                    <th>Periode</th>
+                    <th>Data Aktual</th>
+                    <th>Hasil Prediksi</th>
+                    <th>Error (%)</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                {% for row in evaluation_rows %}
+
+                    <tr>
+
+                        <td>{{ row.periode }}</td>
+
+                        <td>
+                            {{ "{:,.2f}".format(row.actual) }}
+                        </td>
+
+                        <td>
+                            {{ "{:,.2f}".format(row.predicted) }}
+                        </td>
+
+                        <td>
+
+                            {% if row.error is not none %}
+                                {{ row.error }}%
+                            {% else %}
+                                Tidak tersedia
+                            {% endif %}
+
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+
+    <!-- =========================================
+         9. GRAFIK EVALUASI
+    ========================================== -->
+
+    <div class="card">
+
+        <h2>Grafik Evaluasi Data Testing</h2>
+
+        <div class="chart-container">
+            <canvas id="evaluationChart"></canvas>
+        </div>
+
+        <p class="muted">
+            Grafik membandingkan nilai aktual dengan hasil
+            prediksi pada periode testing.
+        </p>
+
+    </div>
+
+
+    <!-- =========================================
+         10. TOMBOL DOWNLOAD
+    ========================================== -->
+
+    <div class="button-container">
+
+        <!-- DOWNLOAD EXCEL -->
+
+        <form action="{{ url_for('export_excel') }}" method="POST">
+
+            <input
+                type="hidden"
+                name="calculation"
+                value='{{ calculation | tojson | forceescape }}'
+            >
+
+            <input type="hidden" name="sum_x" value="{{ sum_x }}">
+            <input type="hidden" name="sum_y" value="{{ sum_y }}">
+            <input type="hidden" name="sum_xy" value="{{ sum_xy }}">
+            <input type="hidden" name="sum_x2" value="{{ sum_x2 }}">
+
+            <input type="hidden" name="total_data" value="{{ total_data }}">
+            <input type="hidden" name="train_periods" value="{{ train_periods }}">
+            <input type="hidden" name="test_periods" value="{{ test_periods }}">
+
+            <input type="hidden" name="a" value="{{ a }}">
+            <input type="hidden" name="b" value="{{ b }}">
+
+            <input type="hidden" name="prediction" value="{{ prediction }}">
+            <input type="hidden" name="next_period" value="{{ next_period }}">
+
+            <input
+                type="hidden"
+                name="mape"
+                value="{{ mape if mape is not none else '' }}"
+            >
+
+            <input
+                type="hidden"
+                name="mae"
+                value="{{ mae }}"
+            >
+
+            <input
+                type="hidden"
+                name="evaluation_rows"
+                value='{{ evaluation_rows | tojson | forceescape }}'
+            >
+
+            <button type="submit" class="button button-excel">
+                Download Hasil Excel
+            </button>
+
+        </form>
+
+
+        <!-- DOWNLOAD PDF -->
+
+        <form action="{{ url_for('export_pdf') }}" method="POST">
+
+            <input
+                type="hidden"
+                name="calculation"
+                value='{{ calculation | tojson | forceescape }}'
+            >
+
+            <input type="hidden" name="total_data" value="{{ total_data }}">
+            <input type="hidden" name="train_periods" value="{{ train_periods }}">
+            <input type="hidden" name="test_periods" value="{{ test_periods }}">
+
+            <input type="hidden" name="a" value="{{ a }}">
+            <input type="hidden" name="b" value="{{ b }}">
+
+            <input type="hidden" name="prediction" value="{{ prediction }}">
+            <input type="hidden" name="next_period" value="{{ next_period }}">
+
+            <input
+                type="hidden"
+                name="mape"
+                value="{{ mape if mape is not none else '' }}"
+            >
+
+            <input
+                type="hidden"
+                name="mae"
+                value="{{ mae }}"
+            >
+
+            <input type="hidden" name="sum_x" value="{{ sum_x }}">
+            <input type="hidden" name="sum_y" value="{{ sum_y }}">
+            <input type="hidden" name="sum_xy" value="{{ sum_xy }}">
+            <input type="hidden" name="sum_x2" value="{{ sum_x2 }}">
+
+            <input
+                type="hidden"
+                name="evaluation_rows"
+                value='{{ evaluation_rows | tojson | forceescape }}'
+            >
+
+            <button type="submit" class="button button-pdf">
+                Download Laporan PDF
+            </button>
+
+        </form>
+
+
+        <!-- KEMBALI KE DASHBOARD -->
+
+        <a href="{{ url_for('index') }}" class="button">
+            Kembali ke Dashboard
+        </a>
+
+    </div>
+
+</main>
+
+
+<footer>
+    Sales Forecasting &copy; 2026 | Metode Trend Moment
+</footer>
+
+
+<!-- =========================================
+     11. GRAFIK CHART.JS
+========================================== -->
+
+<script>
+
+const labels = {{ chart_labels | tojson }};
+const actual = {{ actual_values | tojson }};
+const trend = {{ trend_chart | tojson }};
+
+new Chart(document.getElementById("salesChart"), {
+
+    type: "line",
+
+    data: {
+
+        labels: labels,
+
+        datasets: [
+
+            {
+                label: "Penjualan Aktual",
+                data: actual,
+                borderColor: "#2563eb",
+                backgroundColor: "#2563eb",
+                tension: 0.3,
+                borderWidth: 2,
+                spanGaps: false
+            },
+
+            {
+                label: "Garis Tren dan Prediksi",
+                data: trend,
+                borderColor: "#f59e0b",
+                backgroundColor: "#f59e0b",
+                borderDash: [6, 4],
+                tension: 0.3,
+                borderWidth: 2,
+                spanGaps: false
+            }
+
+        ]
+
+    },
+
+    options: {
+
+        responsive: true,
+
+        maintainAspectRatio: true,
+
+        plugins: {
+
+            legend: {
+                display: true,
+                position: "top"
+            }
+
+        },
+
+        scales: {
+
+            y: {
+                beginAtZero: true
+            }
+
+        }
+
+    }
+
+});
+
+
+/* GRAFIK EVALUASI TESTING */
+
+const evaluationLabels = {{ evaluation_labels | tojson }};
+const evaluationActual = {{ evaluation_actual | tojson }};
+const evaluationPredicted = {{ evaluation_predicted | tojson }};
+
+new Chart(document.getElementById("evaluationChart"), {
+
+    type: "bar",
+
+    data: {
+
+        labels: evaluationLabels,
+
+        datasets: [
+
+            {
+                label: "Data Aktual",
+                data: evaluationActual,
+                backgroundColor: "#2563eb"
+            },
+
+            {
+                label: "Hasil Prediksi",
+                data: evaluationPredicted,
+                backgroundColor: "#f59e0b"
+            }
+
+        ]
+
+    },
+
+    options: {
+
+        responsive: true,
+
+        plugins: {
+
+            legend: {
+                display: true,
+                position: "top"
+            }
+
+        },
+
+        scales: {
+
+            y: {
+                beginAtZero: true
+            }
+
+        }
+
+    }
+
+});
+
+</script>
+
+</body>
+</html>
